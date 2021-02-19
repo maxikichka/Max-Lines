@@ -7,7 +7,6 @@ import re
 from tkinter import filedialog
 import os
 
-cur_text = ""
 text_boxes = []
 tabs_list = []
 
@@ -17,32 +16,79 @@ keywords = ['False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'b
 builtins = ['__build_class__', '__import__', 'abs', 'all', 'any', 'ascii', 'bin', 'breakpoint', 'callable', 'chr', 'compile', 'delattr', 'dir', 'divmod', 'eval', 'exec', 'format', 'getattr', 'globals', 'hasattr', 'hash', 'hex', 'id', 'input', 'isinstance', 'issubclass', 'iter', 'len', 'locals', 'max', 'min', 'next', 'oct', 'ord', 'pow', 'print', 'repr', 'round', 'setattr', 'sorted', 'sum', 'vars', 'open']
 definitions = []
 
-def open_tree(event):
+def open_selcted_file(event):
+    filename = files_list[tree.index(tree.curselection())]
+
+    filepath = path_list[tree.index(tree.curselection())]
+
+
+
+    if filename.endswith(".py"):
+        add_tab("🐍" + filename)
+    else:
+        add_tab(filename)
+
+    
+
+    text_boxes.append(Text(tabs_list[-1], undo=True, maxundo=-1, autoseparators=True))
+
+    
+
+    text_binds()
+
+    text_boxes[-1].pack(fill = BOTH, expand = True)
+
+    try:
+        read_file = open(filepath, "rb")
+    except PermissionError:
+        return
+
+    try:
+        text_boxes[-1].insert("1.0", read_file.read())
+    except UnicodeDecodeError:
+        return
+    
+
+    
+
+    read_file.close()
+
+
+def open_tree():
+
+    global files_list, path_list
 
     files_list = []
+    path_list = []
+
+    count = 1
     
     startpath = filedialog.askdirectory()
+
 
     for root, dirs, files in os.walk(startpath):
         level = root.replace(startpath, '').count(os.sep)
         indent = ' ' * 4 * (level)
-        #print('{}{}/'.format(indent, os.path.basename(root)))
-        files_list.append('{}{}/'.format(indent, os.path.basename(root)))
+
+        tree.insert(count, '{}{}/'.format(indent, "📁" + os.path.basename(root)))
+        
+        files_list.append(os.path.basename(root))
+
+        path_list.append(root)
         
         subindent = ' ' * 4 * (level + 1)
+
+        count += 1
+
+        
         for f in files:
-            #print('{}{}'.format(subindent, f))
-            files_list.append('{}{}'.format(subindent, f))
-        
-        
+            tree.insert(count, "{}{}".format(subindent, f))
+            
+            files_list.append(f)
+            path_list.append(root + "/" + f)
 
+            count += 1
 
-    for i in range(len(files_list)):
-        tree.insert(i + 1, files_list[i])
-
-
-    
-    
 
 def highlighting_syntax(code):
     #print("hi")
@@ -72,8 +118,7 @@ def delete_line(event):
     text_boxes[tabControl.index(tabControl.select())].delete(coors[0] + ".0", coors[0] + ".100")
 
 def save():
-    
-    cur_text = text_boxes[tabControl.index(tabControl.select())].get("1.0", END)
+
     selected_tab = tabControl.tab(tabControl.select(), "text")
 
     if selected_tab == "Untitled":
@@ -90,8 +135,7 @@ def save():
     text_boxes[tabControl.index(tabControl.select())].edit_modified(False)
 
 def save_shortcut(event):
-    
-    cur_text = text_boxes[tabControl.index(tabControl.select())].get("1.0", END)
+
     selected_tab = tabControl.tab(tabControl.select(), "text")
 
     if selected_tab == "Untitled":
@@ -108,14 +152,10 @@ def save_shortcut(event):
     text_boxes[tabControl.index(tabControl.select())].edit_modified(False)
 
 
-'''def undo(event):
-    print("hi")
-    text_boxes[tabControl.index(tabControl.select())].delete("1.0", END)
-    text_boxes[tabControl.index(tabControl.select())].insert("1.0", cur_text)
-'''
 def changes_made(event):
     #print("hi")
     #print(text_boxes[tabControl.index(tabControl.select())].edit_modified())
+    
     if text_boxes[tabControl.index(tabControl.select())].edit_modified() != 0:
         win.title("*" + tabControl.tab(tabControl.select(), "text"))
         code = text_boxes[tabControl.index(tabControl.select())].get("1.0", END)
@@ -150,7 +190,7 @@ def new_file():
 
     text_binds()
 
-    text_boxes[-1].pack()
+    text_boxes[-1].pack(fill = BOTH, expand = True)
 
 def tabs():
     global tabControl
@@ -158,16 +198,16 @@ def tabs():
     #ttk.Style().configure("TButton", padding=6, relief="flat", background="#ccc")
     tabControl = ttk.Notebook(win)
     tabControl.bind("<<NotebookTabChanged>>", change_tab)
-    
-
+    tabControl.bind("<Button-2>", delete_tab)
+    tabControl.pack(fill = BOTH, expand = True)
 
 
 def add_tab(tab_name):
     global tab
     tabs_list.append(ttk.Frame(tabControl))
     tabControl.add(tabs_list[-1], text=tab_name)
-    tabControl.grid(column=2, row=0)
-    tabs_list[-1].bind("<Button-2>", delete_tab)
+    
+    
 
 
 def open_file():
@@ -179,11 +219,10 @@ def open_file():
 
     text_binds()
 
-    text_boxes[-1].pack()
+    text_boxes[-1].pack(fill = BOTH, expand = True)
 
     text_boxes[-1].insert("1.0", file_content.read())
 
-    cur_text = text_boxes[-1].get("1.0", END)
 
 def save_as():
     files = [('All Files', '*.*'),  
@@ -214,17 +253,24 @@ def command_prompt(event):
     text_boxes[tabControl.index(tabControl.select())].see(str(line) + "." + str(column))
 win = Tk()
 
+win.wm_iconbitmap('imgs/logo.ico')
+
 win.title("Mline")
 
+
+
+open_project = Button(win, text="Open project", command=open_tree)
+
+open_project.pack(side = TOP)
+
+tree = Listbox(win, width=25)
+
+
+tree.bind('<<ListboxSelect>>', open_selcted_file)
+
+tree.pack(side = LEFT, fill = BOTH)
+
 tabs()
-
-open_project = Button(win, text="Open project")
-
-open_project.grid(column=1, sticky=N)
-
-tree = Listbox(win)
-
-tree.grid(column=1, sticky=N)
 
 menus()
 
