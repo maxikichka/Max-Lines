@@ -4,11 +4,12 @@ from tkinter.filedialog import asksaveasfile
 from tkinter.filedialog import askopenfilename
 from tkinter import ttk
 import re
+from tkinter import filedialog
+import os
 
 cur_text = ""
 text_boxes = []
 tabs_list = []
-x_tabs = []
 
 
 #data
@@ -16,8 +17,35 @@ keywords = ['False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'b
 builtins = ['__build_class__', '__import__', 'abs', 'all', 'any', 'ascii', 'bin', 'breakpoint', 'callable', 'chr', 'compile', 'delattr', 'dir', 'divmod', 'eval', 'exec', 'format', 'getattr', 'globals', 'hasattr', 'hash', 'hex', 'id', 'input', 'isinstance', 'issubclass', 'iter', 'len', 'locals', 'max', 'min', 'next', 'oct', 'ord', 'pow', 'print', 'repr', 'round', 'setattr', 'sorted', 'sum', 'vars', 'open']
 definitions = []
 
+def open_tree(event):
+
+    files_list = []
+    
+    startpath = filedialog.askdirectory()
+
+    for root, dirs, files in os.walk(startpath):
+        level = root.replace(startpath, '').count(os.sep)
+        indent = ' ' * 4 * (level)
+        #print('{}{}/'.format(indent, os.path.basename(root)))
+        files_list.append('{}{}/'.format(indent, os.path.basename(root)))
+        
+        subindent = ' ' * 4 * (level + 1)
+        for f in files:
+            #print('{}{}'.format(subindent, f))
+            files_list.append('{}{}'.format(subindent, f))
+        
+        
+
+
+    for i in range(len(files_list)):
+        tree.insert(i + 1, files_list[i])
+
+
+    
+    
+
 def highlighting_syntax(code):
-    print("hi")
+    #print("hi")
     #keywords
     #builtins
     #comments
@@ -34,8 +62,9 @@ def highlighting_syntax(code):
     
 
 def delete_tab(event):
-    print("hi")
-    tabControl.forget(tabs_list[tabControl.index(tabControl.select())])
+    if len(tabs_list) == 1:
+        win.destroy()
+    tabControl.forget(tabControl.select())
 
 def delete_line(event):
     pos = text_boxes[tabControl.index(tabControl.select())].index(CURRENT)
@@ -94,29 +123,7 @@ def changes_made(event):
 
 def change_tab(event):
     selected_tab = tabControl.tab(tabControl.select(), "text")
-    #print(len(tabs_list), len(x_tabs))
-    print(x_tabs, tabs_list)
-    if selected_tab == "X":
-        print((tabControl.index(tabControl.select())) // 2)
-        if len(tabs_list) == 1:
-            print("hi")
-            tabControl.forget(tabs_list[0])
-            tabControl.forget(x_tabs[0])
 
-            del tabs_list[0]
-            del x_tabs[0]
-            
-            return
-        
-        tabControl.forget(tabs_list[(tabControl.index(tabControl.select())) // 2])
-        tabControl.forget(x_tabs[(tabControl.index(tabControl.select())) // 2])
-
-
-        del tabs_list[(tabControl.index(tabControl.select())) // 2]
-        del x_tabs[(tabControl.index(tabControl.select())) // 2]
-
-        return
-        
     print(selected_tab)
     win.title(selected_tab)
 
@@ -126,15 +133,20 @@ def text_binds():
     #text_boxes[tabControl.index(tabControl.select())].bind("<<Modified>>", changes_made)
     text_boxes[-1].bind("<Key>", changes_made)
     #text_boxes[tabControl.index(tabControl.select())].bind("<Control_L>s", undo)
-    text_boxes[-1].bind("<Control_L>s", save_shortcut)
+    text_boxes[-1].bind("<Control-s>", save_shortcut)
     
-    text_boxes[-1].bind("<Control_L>d", delete_line)
+    text_boxes[-1].bind("<Control-d>", delete_line)
+
+    text_boxes[-1].bind("<Control-w>", delete_tab)
+
+
+    
     
 
 def new_file():
     global text_box
     add_tab("Untitled")
-    text_boxes.append(Text(tabs_list[-1]))
+    text_boxes.append(Text(tabs_list[-1], undo=True, maxundo=-1, autoseparators=True))
 
     text_binds()
 
@@ -154,16 +166,8 @@ def add_tab(tab_name):
     global tab
     tabs_list.append(ttk.Frame(tabControl))
     tabControl.add(tabs_list[-1], text=tab_name)
-    tabControl.pack(expand=1, fill="both")
+    tabControl.grid(column=2, row=0)
     tabs_list[-1].bind("<Button-2>", delete_tab)
-
-    #Button(tabControl, text="X").pack(padx=0, pady=0)
-
-    x_tabs.append(ttk.Frame(tabControl))
-
-    tabControl.add(x_tabs[-1], text="X")
-    tabControl.pack(expand=1, fill="both")
-
 
 
 def open_file():
@@ -171,7 +175,7 @@ def open_file():
     filename = askopenfilename()
     file_content = open(filename, "r")
     add_tab(filename)
-    text_boxes.append(Text(tabs_list[-1]))
+    text_boxes.append(Text(tabs_list[-1], undo=True, maxundo=-1, autoseparators=True))
 
     text_binds()
 
@@ -213,6 +217,14 @@ win = Tk()
 win.title("Mline")
 
 tabs()
+
+open_project = Button(win, text="Open project")
+
+open_project.grid(column=1, sticky=N)
+
+tree = Listbox(win)
+
+tree.grid(column=1, sticky=N)
 
 menus()
 
