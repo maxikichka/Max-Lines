@@ -28,15 +28,21 @@ def open_selcted_file(event):
     else:
         add_tab(filename)
 
+    text_bar = Scrollbar(tabs_list[-1]) 
+  
+    text_bar.pack(side = RIGHT, fill = Y)
+
     
 
-    text_boxes.append(Text(tabs_list[-1], undo=True, maxundo=-1, autoseparators=True))
+    text_boxes.append(Text(tabs_list[-1], undo=True, maxundo=-1, autoseparators=True, yscrollcommand = text_bar.set))
 
     
 
     text_binds()
 
     text_boxes[-1].pack(fill = BOTH, expand = True)
+
+    text_bar.config(command = text_boxes[-1].yview)
 
     try:
         read_file = open(filepath, "rb")
@@ -221,15 +227,23 @@ def add_tab(tab_name):
 def open_file():
     #global text_box
     filename = askopenfilename()
-    file_content = open(filename, "r")
+    file_content = open(filename, "rb")
     add_tab(filename)
-    text_boxes.append(Text(tabs_list[-1], undo=True, maxundo=-1, autoseparators=True))
+
+    text_bar = Scrollbar(tabs_list[-1]) 
+  
+    text_bar.pack(side = RIGHT, fill = Y)
+    
+    
+    text_boxes.append(Text(tabs_list[-1], undo=True, maxundo=-1, autoseparators=True, yscrollcommand = text_bar.set))
 
     text_binds()
 
     text_boxes[-1].pack(fill = BOTH, expand = True)
 
     text_boxes[-1].insert("1.0", file_content.read())
+
+    text_bar.config(command = text_boxes[-1].yview)
 
 
 def save_as():
