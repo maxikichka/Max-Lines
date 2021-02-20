@@ -186,11 +186,19 @@ def text_binds():
 def new_file():
     global text_box
     add_tab("Untitled")
-    text_boxes.append(Text(tabs_list[-1], undo=True, maxundo=-1, autoseparators=True))
+
+    text_bar = Scrollbar(tabs_list[-1]) 
+  
+    text_bar.pack(side = RIGHT, fill = Y)
+    
+    text_boxes.append(Text(tabs_list[-1], undo=True, maxundo=-1, autoseparators=True, yscrollcommand = text_bar.set))
 
     text_binds()
 
     text_boxes[-1].pack(fill = BOTH, expand = True)
+
+
+    text_bar.config(command = text_boxes[-1].yview)
 
 def tabs():
     global tabControl
@@ -263,12 +271,20 @@ open_project = Button(win, text="Open project", command=open_tree)
 
 open_project.pack(side = TOP)
 
-tree = Listbox(win, width=25)
+   
+tree_bar = Scrollbar(win) 
+  
+tree_bar.pack(side = LEFT, fill = Y)
+
+tree = Listbox(win, width=25, yscrollcommand = tree_bar.set)
 
 
 tree.bind('<<ListboxSelect>>', open_selcted_file)
 
 tree.pack(side = LEFT, fill = BOTH)
+
+tree_bar.config( command = tree.yview )
+
 
 tabs()
 
