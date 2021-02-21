@@ -6,6 +6,8 @@ from tkinter import ttk
 import re
 from tkinter import filedialog
 import os
+from io import StringIO
+import sys
 
 text_boxes = []
 tabs_list = []
@@ -16,17 +18,35 @@ keywords = ['False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'b
 builtins = ['__build_class__', '__import__', 'abs', 'all', 'any', 'ascii', 'bin', 'breakpoint', 'callable', 'chr', 'compile', 'delattr', 'dir', 'divmod', 'eval', 'exec', 'format', 'getattr', 'globals', 'hasattr', 'hash', 'hex', 'id', 'input', 'isinstance', 'issubclass', 'iter', 'len', 'locals', 'max', 'min', 'next', 'oct', 'ord', 'pow', 'print', 'repr', 'round', 'setattr', 'sorted', 'sum', 'vars', 'open']
 definitions = []
 
+def run_code(event):
+
+    code = text_boxes[tabControl.index(tabControl.select())].get("1.0", END)
+
+    old_stdout = sys.stdout
+    sys.stdout = mystdout = StringIO()
+
+    exec(code)
+
+    sys.stdout = old_stdout
+
+    message = mystdout.getvalue()
+
+    output = Text(win)
+
+    output.insert("1.0", message)
+
+    output.pack()
+
+
+    print(message)
+
 def open_selcted_file(event):
-    filename = files_list[tree.index(tree.curselection())]
+    
+    filename = files_list[tree.index(tree.curselection()) - 1]
 
-    filepath = path_list[tree.index(tree.curselection())]
+    filepath = path_list[tree.index(tree.curselection()) - 1]
 
-
-
-    if filename.endswith(".py"):
-        add_tab("🐍" + filename)
-    else:
-        add_tab(filename)
+    add_tab(filename)
 
     text_bar = Scrollbar(tabs_list[-1]) 
   
@@ -49,11 +69,8 @@ def open_selcted_file(event):
     except PermissionError:
         return
 
-    try:
-        text_boxes[-1].insert("1.0", read_file.read())
-    except UnicodeDecodeError:
-        return
-    
+    text_boxes[-1].insert("1.0", read_file.read())
+
 
     
 
@@ -62,14 +79,24 @@ def open_selcted_file(event):
 
 def open_tree():
 
+
+
     global files_list, path_list
 
     files_list = []
     path_list = []
 
     count = 1
+
+    tree.insert(1, "Loading your project folder")
+
+    tree.insert(2, "please wait...")
     
     startpath = filedialog.askdirectory()
+
+
+
+    
 
 
     for root, dirs, files in os.walk(startpath):
@@ -161,6 +188,11 @@ def save_shortcut(event):
 def changes_made(event):
     #print("hi")
     #print(text_boxes[tabControl.index(tabControl.select())].edit_modified())
+
+    print(event.char)
+
+    if event.char == ".":
+        Listbox(text_boxes[tabControl.index(tabControl.select())]).pack(pady=25, padx=25)
     
     if text_boxes[tabControl.index(tabControl.select())].edit_modified() != 0:
         win.title("*" + tabControl.tab(tabControl.select(), "text"))
@@ -184,6 +216,8 @@ def text_binds():
     text_boxes[-1].bind("<Control-d>", delete_line)
 
     text_boxes[-1].bind("<Control-w>", delete_tab)
+
+    text_boxes[-1].bind("<F5>", run_code)
 
 
     
