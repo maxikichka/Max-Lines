@@ -12,6 +12,11 @@ import sys
 text_boxes = []
 tabs_list = []
 
+start_intelli = False
+
+intelli_word = ""
+
+alph = "abcdefghijklmnopqrstuvwxyz."
 
 #data
 keywords = ['False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield']
@@ -24,6 +29,7 @@ def run_code(event):
 
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
+
 
     exec(code)
 
@@ -141,8 +147,10 @@ def highlighting_syntax(code):
     
 
 def delete_tab(event):
-    if len(tabs_list) == 1:
+    print(len(tabs_list))
+    if len(tabs_list) == 0:
         win.destroy()
+        return
     tabControl.forget(tabControl.select())
 
 def delete_line(event):
@@ -184,16 +192,108 @@ def save_shortcut(event):
     write_file.close()
     text_boxes[tabControl.index(tabControl.select())].edit_modified(False)
 
+def find_all_intelli(word):
+    matches = []
+    #print("searching")
+
+    #r = re.findall(r"^(?:(?! ).)*$", text_boxes[tabControl.index(tabControl.select())].get("1.0", END))
+
+    #print(r)
+
+    '''for i in range(len(r)):
+        if word in r[i]:
+            matches.append(r[i])'''
+
+    lines = text_boxes[tabControl.index(tabControl.select())].get("1.0", END).split("\n")
+
+    #print(lines)
+
+    for i in range(len(lines)):
+        words = lines[i].split(" ")
+
+        #print(words)
+
+        for j in range(len(words)):
+            if word in words[j]:
+                matches.append(words[j])
+
+    return matches
+
+
 
 def changes_made(event):
+    global intelli_word, start_intelli, intellisense
+    
     #print("hi")
     #print(text_boxes[tabControl.index(tabControl.select())].edit_modified())
 
-    print(event.char)
+    #print(event.char)
 
-    if event.char == ".":
-        Listbox(text_boxes[tabControl.index(tabControl.select())]).pack(pady=25, padx=25)
+    #print(start_intelli)
     
+
+    if start_intelli == False:
+        
+        '''if event.char == "" or event.keysym =="Return":
+            return'''
+
+        if event.char not in alph:
+            return
+            
+        #print("make intellisense")
+        pos = text_boxes[tabControl.index(tabControl.select())].index(INSERT)
+
+        line = pos.split(".")[0]
+        column = pos.split(".")[1]
+
+
+        intellisense = Listbox(text_boxes[tabControl.index(tabControl.select())])
+        start_intelli = True
+        intelli_word += event.char
+
+        
+        intellisense.pack(pady=15 * int(line), padx=11 * int(column))
+        
+        intellisense.activate(0) 
+
+    elif start_intelli == True:
+        intellisense.delete(0, END)
+        if event.char == "":
+            intelli_word = intelli_word[0:len(intelli_word) - 1]
+        elif event.keysym == 'Return' or event.char == " ":
+            intellisense.destroy()
+            start_intelli = False
+            intelli_word = ""
+            return
+        else:
+            intelli_word += event.char
+
+        #print(intelli_word)
+        #print()
+        #print()
+
+        
+        found = find_all_intelli(intelli_word)
+
+        if len(found) == 0:
+            intellisense.destroy()
+            start_intelli = False
+            intelli_word = ""
+            return
+        
+
+        #print(found)
+
+        for i in range(len(found)):
+            intellisense.insert(i + 1, found[i])
+            #print(found[i])
+    if event.keysym == 'Down' or event.keysym == "Up":
+        intellisense.focus_set()
+    intellisense.selection_set(1)
+    intellisense.activate(1)
+    intellisense.selection_anchor(1)
+        
+        
     if text_boxes[tabControl.index(tabControl.select())].edit_modified() != 0:
         win.title("*" + tabControl.tab(tabControl.select(), "text"))
         code = text_boxes[tabControl.index(tabControl.select())].get("1.0", END)
@@ -215,7 +315,7 @@ def text_binds():
     
     text_boxes[-1].bind("<Control-d>", delete_line)
 
-    text_boxes[-1].bind("<Control-w>", delete_tab)
+    win.bind("<Control-w>", delete_tab)
 
     text_boxes[-1].bind("<F5>", run_code)
 
